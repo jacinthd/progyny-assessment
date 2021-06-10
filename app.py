@@ -13,3 +13,7 @@ load_dotenv(find_dotenv(raise_error_if_not_found=True))
 # os.getenv("DB_HOST")
 
 # Start Here
+
+if __name__ == "__main__":
+    crypto_list = crypto_api.get_coins(3)
+    print(crypto_list)

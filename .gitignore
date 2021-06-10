@@ -115,6 +115,7 @@ dmypy.json
 # Environment Folders
 venv
 env
+proogyny-env
 
 # Serverless directories
 .serverless
@@ -128,6 +129,7 @@ node_modules
 
 # Code Editors
 .vscode
+.idea
 
 # Testing files
 example*.db

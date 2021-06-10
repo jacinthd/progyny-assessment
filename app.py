@@ -15,10 +15,9 @@ load_dotenv(find_dotenv(raise_error_if_not_found=True))
 # Start Here
 create_coins = """
     CREATE TABLE IF NOT EXISTS `coins` (
-        `id` int(11) NOT NULL AUTO_INCREMENT,
         `symbol` varchar(20) COLLATE utf8_bin NOT NULL,
         `name` varchar(255) COLLATE utf8_bin NOT NULL,
-        PRIMARY KEY (`id`)
+        PRIMARY KEY (`symbol`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
     AUTO_INCREMENT=1;
 """
@@ -45,27 +44,36 @@ def connect_to_mysql():
 
 if __name__ == "__main__":
     crypto_list = crypto_api.get_coins(3)
-
+    coins_data = []
+    for coin in crypto_list:
+        symbol = coin['symbol']
+        history = [price for (_, price) in crypto_api.get_coin_price_history(coin['id'])]
+        avg_coin_price = sum(history)/len(history)
+        coins_data.append([symbol, coin['name'], coin['current_price'], avg_coin_price])
     # Connect to the database
     connection = connect_to_mysql()
 
     create_tables(connection)
     with connection:
+        insert_coins = "INSERT INTO `coins` (`symbol`, `name`) VALUES (%s, %s)"
+        existing_coins = "SELECT * FROM `coins`"
         with connection.cursor() as cursor:
-            # Create a new record
-            sql = "INSERT INTO `coins` (`symbol`, `name`) VALUES (%s, %s)"
-            coins_data = [(coin['symbol'], coin['name']) for coin in crypto_list]
+            cursor.execute(existing_coins)
+            existing_coins_res = cursor.fetchall()
+            existing_coins_set = set([coin['symbol'] for coin in existing_coins_res])
 
-            # edge case: should check for length of symbol and name because might exceed database column length
-            cursor.executemany(sql, coins_data)
+            new_coins = [(symbol, name) for [symbol, name, _, _] in coins_data if symbol not in existing_coins_set]
+            # enter new coins into database
+            if new_coins:
+                # edge case: should check for length of symbol and name because might exceed database column length
+                cursor.executemany(insert_coins, coins_data)
 
         # connection is not autocommit by default. So you must commit to save
         # your changes.
         connection.commit()
 
+        # for checking result
         with connection.cursor() as cursor:
-            # Read a single record
-            sql = "SELECT * FROM `coins`"
-            cursor.execute(sql)
+            cursor.execute(existing_coins)
             result = cursor.fetchall()
             print(result)

@@ -1,58 +1,31 @@
-# Interview Assessment
+# how to run it
+- sudo make init to build the docker file
+- python app.py to run the script
+- output added to logs and std output
 
-Welcome to Progyny's Engineering technical assessment challenge! Please read the instructions below, and once your ready to begin fork the repo to your personal GitHub account to complete the assignment.
+# A technical walkthrough of the code and how it works
+- app.py has calls to crypto_api.py. It gets top 3 coins, then compares them against last average of last 10 prices for each coin
+- 1 of the coin is purchased if current price is less than average of last 10 prices 
+- all SQL code and related functionality is in crypto_sql.py file 
+- used crontab for scheduling hourly run of script. cron logs in /var/log/cron/log
 
-## Instructions
+# design decisions
+- stuck with poetry as package manager because it was set up
+- didn't use any new package, wasn't required
+- mysql used. 3 tables created
+    - coin prices is fact table to track coin prices that we get from api
+    - coins table is dimension table to track name and symbol of coins. It will make it easier to add information 
+      about coins in the future without updating fields or schema in other tables 
+    - portfolio table tracks current and past holdings in portfolio with gain/loss percentage and current vs buy and 
+      sell price
 
-### Overview
-
-Cryptocurrencies are on the rise, and we want to get in on the action. Let's build a bot that watches the prices of certain coins and their prices, and places trades for us when they hit certain levels. 
-
-### Steps
-
-- Write an python application that will hit an API to get the top 3 cryptocurrency coins based on current market cap. (Please note the API call to get this data is in `crypto_api.py`). 
-- Store these results in a database table. (Please design this table as well as inserting records into it. The primary fields to include are the symbol, name and current price, but feel free to include any other data you believe is relevant). Please utilize MySQL or a similar relational database. (A MySQL docker container has been provided but you are welcome to use a similar one if so desired)
-- Compare each coin and it's current price (in USD) against the average of the last 10 prices on a daily interval (Please note the API call to get this data is in `crypto_api.py`)
-    - If the current price is lower than the average price, place an order for "1 coin" and assume it was filled at the current price. (Please use the fake function `submit_order` to mock this trade, there is no real network request to place a trade)
-    - If the current price is equal to or higher than the average price, do nothing and move onto the next coin
-- Log the results of the trades (if any were made)
-- Log the results of our current portfolio (coins owned and percentage loss/gain on each one. Round the percentage to 2 decimal places.)
-- When logging the results, make sure the information appears both in the console and an app.log file located at storage/logs/app.log
-- This application should be scheduled to run every hour.
-
-Be prepared to present your solutions and cover the following items:
-- Submit you code for review via a public repo on your GitHub account (If you would like to make it private let us know and we can provide usernames to add for read access)
-- Include some instructions on how to run it
-- A technical walkthrough of the code and how it works
-- Answer potential questions around design decisions
-- What you would improve - this can be both from a code perspective and a business logic perspective
-
-### Important Notes
-
-- Your goal with this application should be to have a working solution. If you find edge cases you believe should be handled, feel free to add some notes/comments about them instead of coding the full solution. 
-- Make sure you follow the local development setup steps below before writing any code.
-- There is some initial python code located in `app.py`. You can use this as a jumping off point but if you want to reorganize how the code is structured feel free to do so.
-- The docker container comes with poetry as a python dependency manager. If you need to add additional libraries, you can use this command similar to pip: `poetry add`. Ex. `poetry add flask`
-- If you experience any downtime issues with the API, please contact us and we can review it & provide some additional time.
-
-
-## Local Development
-
-You will need the following installed on your local machine:
-
-- Docker
-
-Steps to get up and running
-
-1. Copy the `.env.example` file to `.env`
-2. Run `make init` to spin up the docker container. Note you will automatically be "ssh'ed" into the main docker container from which you can run your python code.
-
-### Database Access
-
-If you would like to access the database via a GUI such as Sequel Pro or Tableplus, you can use the following credentials:
-
-Host: `127.0.0.1`
-User: `docker`
-Password: `secret`
-Database: `crypto`
-Port: `33060`
+# what can be improved - code and business logic
+- Portfolio should be updated after each invocation of application. I added sketch of the solution
+- Edge cases can be covered to make application robust
+    - haven't encoded business rules in the app when coin information changes. Will require update to relevant tables
+    - can handle case when coin price, name and other data exceed database column length
+- The output in stdout and app.log can be made more meaningful. Currently it is just printing out returned rows
+- The cron solution is somewhat dirty, can be streamlined. cron logging can be done in app.log
+- can set limits around how many coins to buy per day 
+- it is possible to set stop loss on portfolio that makes sure that loss% is less than value
+- can set profit goal on each coin transaction. Can sell after gain% on coin is realized

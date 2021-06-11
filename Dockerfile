@@ -5,10 +5,16 @@ ENV PATH="${PATH}:/root/.poetry/bin"
 ENV WORKDIR="/app"
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --fix-missing \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y cron --fix-missing \
     apt-utils \
     apt-transport-https \
     build-essential
+
+ADD entrypoint.sh /entrypoint.sh
+ADD app.py /app.py
+RUN chmod +x /app.py /entrypoint.sh
+
+ENTRYPOINT /entrypoint.sh
 
 #Install Poetry
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python

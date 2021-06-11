@@ -32,7 +32,7 @@ logging.getLogger('').addHandler(console_ch)
 
 def connect_to_mysql():
     return pymysql.connect(
-        host=os.getenv("DB_HOST"),
+        #host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USERNAME"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_DATABASE"),
@@ -84,6 +84,19 @@ if __name__ == "__main__":
             if purchases:
                 logging.info(f'coins purchased: {purchases}')
                 cursor.executemany(crypto_sql.insert_portfolio, purchases)
+
+            cursor.execute(crypto_sql.current_portfolio)
+            result_current_portfolio = cursor.fetchall()
+            logging.info(f'current portfolio held: {result_current_portfolio}')
+
+            # sketch of further steps
+            '''
+            - portfolio needs to be updated after each invocation 
+            - Get the coins held at present. Get their current prices
+            - update the table with current price. Also calculate loss/gain% and update that
+            - If coins are sold, then make necessary update to the table
+            - to optimize this, we can get current prices of coins held and top 3 coins together
+            '''
 
         # connection is not autocommit by default. So commit to save changes.
         connection.commit()

@@ -45,6 +45,16 @@ existing_coins = "SELECT * FROM `coins`"
 existing_coin_prices = "SELECT * FROM coin_prices"
 existing_portfolio = "SELECT * FROM portfolio"
 
+current_portfolio = """
+select symbol, number_of_coins, round((100 * `profit/loss`/buy_price_total), 2) as `profit/loss %`
+FROM (
+SELECT symbol, count(*) as number_of_coins, sum(current_or_sell_price - buy_price) as `profit/loss`, 
+sum(buy_price) buy_price_total FROM portfolio 
+where sold != 1 or sold is null
+group by symbol
+) as p
+"""
+
 
 def create_tables(mysql_connection):
     with mysql_connection.cursor() as cursor_int:

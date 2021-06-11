@@ -21,29 +21,41 @@ create_coins = """
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 """
 
+insert_coins = "INSERT INTO `coins` (`symbol`, `name`) VALUES (%s, %s)"
+
 create_coin_prices = """
     CREATE TABLE IF NOT EXISTS `coin_prices` (
+        `id` int(11) NOT NULL AUTO_INCREMENT,
         `symbol` varchar(20) COLLATE utf8_bin NOT NULL,
-        `date` DATE NOT NULL,
-        `current_price` DECIMAL NOT NULL,
-        `history_avg_prices` DECIMAL NOT NULL,
-        PRIMARY KEY (`symbol`)
+        `current_price` DECIMAL(40,20) NOT NULL,
+        `history_avg_prices` DECIMAL(40,20) NOT NULL,
+        `query_datetime` DATETIME NOT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY `symbol_and_query_datetime` (`symbol`, `query_datetime`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 """
+
+insert_coin_prices = "INSERT INTO `coin_prices` (`symbol`, `current_price`, `history_avg_prices`, `query_datetime`) " \
+                     "VALUES (%s, %s, %s, now())"
 
 create_portfolio = """
     CREATE TABLE IF NOT EXISTS `portfolio` (
         `id` int(11) NOT NULL AUTO_INCREMENT,
         `symbol` varchar(20) COLLATE utf8_bin NOT NULL,
-        `date_purchased` DATE NOT NULL,
-        `buy_price` DECIMAL NOT NULL,
-        `current_or_sell_price` DECIMAL NOT NULL,
+        `buy_price` DECIMAL(40,20) NOT NULL,
+        `current_or_sell_price` DECIMAL(40,20) NOT NULL,
         `sold` TINYINT(1) NULL,
-        `current_loss_gain` FLOAT NOT NULL,
+        `current_loss_gain` DECIMAL(12,2) NOT NULL,
+        `datetime_purchase` DATETIME NOT NULL,
+        `datetime_sale` DATETIME NULL,
         PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin 
     AUTO_INCREMENT=1;
 """
+
+insert_portfolio = "INSERT INTO `portfolio` (`symbol`, `buy_price`, `current_or_sell_price`, `current_loss_gain`, `datetime_purchase`) " \
+                    "VALUES (%s, %s, %s, %s, now())"
+
 
 def create_tables(mysql_connection):
     with mysql_connection.cursor() as cursor_int:
@@ -72,27 +84,43 @@ if __name__ == "__main__":
     connection = connect_to_mysql()
     create_tables(connection)
     with connection:
-        insert_coins = "INSERT INTO `coins` (`symbol`, `name`) VALUES (%s, %s)"
         existing_coins = "SELECT * FROM `coins`"
+        existing_coin_prices = "SELECT * FROM coin_prices"
+        existing_portfolio = "SELECT * FROM portfolio"
         with connection.cursor() as cursor:
             cursor.execute(existing_coins)
             existing_coins_res = cursor.fetchall()
             existing_coins_set = set([coin['symbol'] for coin in existing_coins_res])
 
-            coins_data = []
+            coin_prices = []
+            purchases = []
             new_coins = []
             for coin in crypto_list:
-                symbol, curr_price, name = coin['symbol'], coin['current_price'], coin['name']
-                history = [price for (_, price) in crypto_api.get_coin_price_history(coin['id'])]
+                symbol, curr_price, name, id = coin['symbol'], coin['current_price'], coin['name'], coin['id']
+                history = [price for (_, price) in crypto_api.get_coin_price_history(id)]
                 avg_coin_price = sum(history) / len(history)
-                coins_data.append([symbol, name, curr_price, avg_coin_price, curr_price < avg_coin_price])
+                coin_prices.append([symbol, curr_price, avg_coin_price])
+
+                if curr_price < avg_coin_price:
+                    buy_price = crypto_api.submit_order(id, 1, curr_price)
+                    loss_gain = ((curr_price - buy_price) / buy_price) * 100
+                    purchases.append([symbol, buy_price, curr_price, loss_gain])
+                    # symbol, buy_price, current_or_sell_price, current_loss_gain
+
                 if symbol not in existing_coins_set:
                     new_coins.append([symbol, name])
+
+            # edge case: should check for length of symbol and price because might exceed database column length
+            cursor.executemany(insert_coin_prices, coin_prices)
 
             # enter new coins into database
             if new_coins:
                 # edge case: should check for length of symbol and name because might exceed database column length
-                cursor.executemany(insert_coins, coins_data)
+                cursor.executemany(insert_coins, new_coins)
+
+            # enter purchases into portfolio
+            if purchases:
+                cursor.executemany(insert_portfolio, purchases)
 
         # connection is not autocommit by default. So you must commit to save
         # your changes.
@@ -101,5 +129,14 @@ if __name__ == "__main__":
         # for checking result
         with connection.cursor() as cursor:
             cursor.execute(existing_coins)
-            result = cursor.fetchall()
-            print(result)
+            result_coins = cursor.fetchall()
+
+            cursor.execute(existing_coin_prices)
+            result_coin_prices = cursor.fetchall()
+
+            cursor.execute(existing_portfolio)
+            result_portfolio = cursor.fetchall()
+
+            print(result_coins)
+            print(result_coin_prices)
+            print(result_portfolio)

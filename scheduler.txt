@@ -1,0 +1,4 @@
+SHELL=/bin/bash
+BASH_ENV=/container.env
+* * * * * python /app.py
+# This extra line makes it a valid cron

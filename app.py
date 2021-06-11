@@ -32,7 +32,7 @@ logging.getLogger('').addHandler(console_ch)
 
 def connect_to_mysql():
     return pymysql.connect(
-        #host=os.getenv("DB_HOST"),
+        host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USERNAME"),
         password=os.getenv("DB_PASSWORD"),
         database=os.getenv("DB_DATABASE"),

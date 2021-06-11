@@ -15,9 +15,17 @@ load_dotenv(find_dotenv(raise_error_if_not_found=True))
 # os.getenv("DB_HOST")
 
 # Start Here
-logging.basicConfig(filename='storage/logs/app.log', level=logging.INFO)
+logging.basicConfig(
+    filename='storage/logs/app.log',
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 # https://docs.python.org/3/howto/logging-cookbook.html
+formatter = logging.Formatter(fmt='%(asctime)s %(levelname)-8s %(message)s',
+                                  datefmt='%Y-%m-%d %H:%M:%S')
 console_ch = logging.StreamHandler()
+console_ch.setFormatter(formatter)
 console_ch.setLevel(logging.INFO)
 logging.getLogger('').addHandler(console_ch)
 

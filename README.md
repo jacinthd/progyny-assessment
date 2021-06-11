@@ -4,7 +4,8 @@
 - output added to logs and std output
 
 # A technical walkthrough of the code and how it works
-- bb
+- app.py has calls to crypto_api.py. It gets top 3 coins, then compares them against last average of last 10 prices for each coin
+- 1 of the coin is purchased if currrent price is less than average of last 10 prices 
 - all SQL code and related functionality is in crypto_sql.py file 
 - used crontab for scheduling hourly run of script. cron logs in /var/log/cron/log
 
@@ -21,4 +22,8 @@
 # what can be improved - code and business logic
 - Edge cases can be covered to make application robust
     - haven't encoded business rules in the app when coin information changes. Will require update to relevant tables
-    - can handle case when coin price, name and other data exceed database column length
+    - can handle case when coin price, name and other data exceed database column length 
+- cron logging can be done in app.log
+- can set limits around how many coins to buy per day 
+- it is possible to set stop loss on portfolio that makes sure that loss% is less than value
+- can set profit goal on each coin transaction. Can sell after gain% on coin is realized

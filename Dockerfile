@@ -38,5 +38,4 @@ RUN poetry install --no-interaction
 
 COPY . ${WORKDIR}
 
-#CMD cron -f
 CMD /bin/bash
